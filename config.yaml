@@ -1,0 +1,54 @@
+# ============================================================
+# Gujarat / India Labour Law Tracker - configuration
+# ============================================================
+# Add or remove queries/feeds freely. Each item needs a
+# "category" (used for grouping in the digest & website) and
+# either a "query" (we build a Google News search feed for it)
+# or a direct "url" (any valid RSS/Atom feed, including a
+# YouTube channel's own feed - see README for how to find one).
+# ============================================================
+
+# How many characters of summary to keep if AI summarization
+# (ANTHROPIC_API_KEY secret) is not configured.
+fallback_summary_length: 400
+
+# Maximum number of items kept in the permanent archive/site.
+# Older sent items are trimmed once this is exceeded.
+max_archive_items: 800
+
+search_queries:
+  - query: "EPFO circular OR notification"
+    category: "PF / EPFO"
+  - query: "PF withdrawal rules OR UAN update"
+    category: "PF / EPFO"
+  - query: "ESIC notification India"
+    category: "ESI / ESIC"
+  - query: "ESI contribution rate India"
+    category: "ESI / ESIC"
+  - query: "Gujarat labour law amendment"
+    category: "Gujarat Labour Law"
+  - query: "Gujarat minimum wages notification"
+    category: "Gujarat Labour Law"
+  - query: "Gujarat factories act OR labour welfare board"
+    category: "Gujarat Labour Law"
+  - query: "Gujarat shops and establishment act"
+    category: "Gujarat Labour Law"
+  - query: "labour codes India implementation"
+    category: "Central Labour Law"
+  - query: "Shram Suvidha portal OR compliance"
+    category: "Central Labour Law"
+  - query: "gratuity OR bonus act India update"
+    category: "Central Labour Law"
+  - query: "PF ESI compliance update site:youtube.com"
+    category: "Videos"
+  - query: "new labour codes explained site:youtube.com"
+    category: "Videos"
+  - query: "Gujarat labour law site:youtube.com"
+    category: "Videos"
+
+# Optional: direct RSS/Atom feeds (official government feeds,
+# specific YouTube channels, law firm blogs, etc). Leave empty
+# or add your own once you find reliable official feed URLs.
+# Example YouTube channel feed format:
+#   https://www.youtube.com/feeds/videos.xml?channel_id=CHANNEL_ID
+rss_feeds: []
