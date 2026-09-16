@@ -154,13 +154,81 @@ def collect_all_entries(config, sources):
         all_items.extend(fetch_entries(url, q["category"]))
     for feed in config.get("rss_feeds", []) or []:
         all_items.extend(fetch_entries(feed["url"], feed["category"], default_source=feed.get("name")))
-    # Sources added by users through the website's Manage Sources page
+    # Sources added by users through the website's Manage Sources page.
+    # Category is optional here - facets (state/law area/sector) get
+    # auto-detected per-item later from the actual article content.
     for s in sources:
-        if s.get("type") == "query" and s.get("query") and s.get("category"):
-            all_items.extend(fetch_entries(google_news_url(s["query"]), s["category"]))
-        elif s.get("type") == "feed" and s.get("url") and s.get("category"):
-            all_items.extend(fetch_entries(s["url"], s["category"], default_source=s.get("name")))
+        if s.get("type") == "query" and s.get("query"):
+            all_items.extend(fetch_entries(google_news_url(s["query"]), s.get("category") or ""))
+        elif s.get("type") == "feed" and s.get("url"):
+            all_items.extend(fetch_entries(s["url"], s.get("category") or "", default_source=s.get("name")))
     return all_items
+
+
+# ----------------------------------------------------------------
+# Auto-tagging: State / Law Area / Sector
+# ----------------------------------------------------------------
+# Non-technical users just paste a link - no category to fill in. So every
+# item (scraped or pasted) gets auto-tagged from its own title/summary text.
+# This is a best-effort keyword heuristic, not a legal classification.
+
+LAW_AREA_KEYWORDS = [
+    (["epfo", "provident fund", " pf ", "pf scheme", "uan"], "PF / EPFO"),
+    (["esic", "esi contribution", "employee state insurance", " esi "], "ESI / ESIC"),
+    (["gazette", "notification no", "gazetted"], "Gazette / Notifications"),
+    (["minimum wage", "wage rate", "vda", "dearness allowance"], "Minimum Wages"),
+    (["gratuity"], "Gratuity"),
+    (["bonus act", "bonus payment"], "Bonus"),
+    (["factories act", "factory act"], "Factories Act"),
+    (["shops and establishment", "shop and establishment"], "Shops & Establishment Act"),
+    (["labour code", "labor code", "wage code", "industrial relations code",
+      "occupational safety code", "social security code"], "Labour Codes"),
+    (["apprentice"], "Apprenticeship"),
+    (["trade union"], "Trade Unions"),
+    (["maternity benefit"], "Maternity Benefits"),
+    (["child labour", "child labor"], "Child Labour"),
+]
+
+SECTOR_KEYWORDS = [
+    (["textile", "garment", "apparel"], "Textile & Garments"),
+    (["construction", "real estate", "building"], "Construction"),
+    (["manufactur", "factory", "industrial"], "Manufacturing"),
+    (["information technology", "software", "it/ites", "startup", "tech company"], "IT / ITES"),
+    (["agricultur", "farm"], "Agriculture"),
+    (["mining"], "Mining"),
+    (["chemical", "pharma"], "Chemicals & Pharma"),
+    (["retail", "e-commerce", "ecommerce"], "Retail & E-commerce"),
+    (["healthcare", "hospital"], "Healthcare"),
+    (["banking", "financial services", "nbfc"], "BFSI"),
+]
+
+NON_LAW_AREA_HINTS = {"gujarat labour law", "videos", "manually added", "", None}
+
+
+def infer_facets(title, summary, hint_category=None):
+    """Best-effort auto-tagging so nobody has to pick a category by hand."""
+    text = f"{title or ''} {summary or ''} {hint_category or ''}".lower()
+
+    state = "Gujarat" if "gujarat" in text else "National"
+
+    law_area = None
+    if hint_category and hint_category.strip().lower() not in NON_LAW_AREA_HINTS:
+        law_area = hint_category.strip()
+    if not law_area:
+        for keywords, label in LAW_AREA_KEYWORDS:
+            if any(k in text for k in keywords):
+                law_area = label
+                break
+    if not law_area:
+        law_area = "General Labour Law"
+
+    sector = "General / All Sectors"
+    for keywords, label in SECTOR_KEYWORDS:
+        if any(k in text for k in keywords):
+            sector = label
+            break
+
+    return {"state": state, "law_area": law_area, "sector": sector}
 
 
 # ----------------------------------------------------------------
@@ -291,7 +359,6 @@ def process_smart_sources(sources, archive, existing_links, config):
             continue
 
         url = s.get("url", "").strip()
-        category = s.get("category") or "Manually Added"
         if not url:
             continue  # drop malformed entries
 
@@ -299,21 +366,25 @@ def process_smart_sources(sources, archive, existing_links, config):
         log(f"Classified pasted link as '{classification['mode']}': {url}")
 
         if classification["mode"] == "query":
-            remaining.append({"type": "query", "query": classification["query"], "category": category, "resolved": True})
+            law_area = infer_facets(classification["query"], "").get("law_area")
+            remaining.append({"type": "query", "query": classification["query"], "category": law_area, "resolved": True})
 
         elif classification["mode"] == "feed":
-            remaining.append({"type": "feed", "url": classification["feed_url"], "name": category, "category": category, "resolved": True})
+            remaining.append({"type": "feed", "url": classification["feed_url"], "name": None, "category": None, "resolved": True})
 
         else:  # one-off link - save it once, directly, right now
             if url in existing_links:
                 continue  # already archived (e.g. re-added by mistake)
             meta = fetch_link_metadata(url)
+            facets = infer_facets(meta["title"], meta["summary"])
             item = {
                 "id": make_id(url),
                 "title": meta["title"],
                 "link": url,
                 "source": meta["source"],
-                "category": category,
+                "category": facets["law_area"],
+                "state": facets["state"],
+                "sector": facets["sector"],
                 "summary": summarize({"title": meta["title"], "raw_summary": meta["summary"]},
                                       config.get("fallback_summary_length", 400)),
                 "added_date": now_ist().strftime("%Y-%m-%d"),
@@ -541,36 +612,52 @@ def category_palette(category):
 
 def build_site(archive):
     items_sorted = sorted(archive, key=lambda x: x.get("added_date", ""), reverse=True)
-    categories = sorted(set(i["category"] for i in items_sorted))
+    law_areas = sorted(set(i.get("category", "General Labour Law") for i in items_sorted))
+    states = sorted(set(i.get("state", "National") for i in items_sorted))
+    sectors = sorted(set(i.get("sector", "General / All Sectors") for i in items_sorted))
     updated_str = now_ist().strftime("%d %b %Y, %I:%M %p IST")
     today_iso = now_ist().strftime("%Y-%m-%d")
 
     cards = []
     for item in items_sorted:
-        bg, fg = category_palette(item["category"])
+        bg, fg = category_palette(item.get("category", "General Labour Law"))
         is_video = bool(re.search(r"(youtube\.com|youtu\.be|vimeo\.com)", item["link"], re.IGNORECASE))
         type_badge = "🎥 Video" if is_video else "📰 Article"
-        manual_badge = '<span class="manual-badge">Added by you</span>' if item.get("manual") else ""
+        if item.get("seed"):
+            extra_badge = '<span class="manual-badge" style="background:#e8f0fe;color:#1a56db;">Verified via research</span>'
+        elif item.get("manual"):
+            extra_badge = '<span class="manual-badge">Added by you</span>'
+        else:
+            extra_badge = ""
+        state = item.get("state", "National")
+        sector = item.get("sector", "General / All Sectors")
         cards.append(f"""
         <a class="card" href="{item['link']}" target="_blank" rel="noopener"
-           data-category="{html.escape(item['category'])}"
+           data-law="{html.escape(item.get('category', 'General Labour Law'))}"
+           data-state="{html.escape(state)}"
+           data-sector="{html.escape(sector)}"
            data-added="{html.escape(item['added_date'])}"
            data-search="{html.escape((item['title'] + ' ' + item['summary'] + ' ' + item['source']).lower())}">
           <div class="card-top">
-            <span class="tag" style="background:{bg};color:{fg};">{html.escape(item['category'])}</span>
+            <span class="tag" style="background:{bg};color:{fg};">{html.escape(item.get('category', 'General Labour Law'))}</span>
             <span class="date">{html.escape(item['added_date'])}</span>
           </div>
           <div class="title">{html.escape(item['title'])}</div>
-          <div class="meta">{type_badge} &middot; {html.escape(item['source'])} {manual_badge}</div>
+          <div class="meta">{type_badge} &middot; {html.escape(item['source'])} &middot; 📍 {html.escape(state)} &middot; 🏭 {html.escape(sector)} {extra_badge}</div>
           <p class="summary">{html.escape(item['summary'])}</p>
           <div class="read-more">Open full {"video" if is_video else "article"} &nearr;</div>
         </a>""")
 
-    cat_filter_buttons = ['<button class="filter-btn cat-btn active" data-cat="all">All categories</button>']
-    for c in categories:
-        cat_filter_buttons.append(f'<button class="filter-btn cat-btn" data-cat="{html.escape(c)}">{html.escape(c)}</button>')
+    def button_row(name, values, all_label):
+        buttons = [f'<button class="filter-btn {name}-btn active" data-{name}="all">{all_label}</button>']
+        for v in values:
+            buttons.append(f'<button class="filter-btn {name}-btn" data-{name}="{html.escape(v)}">{html.escape(v)}</button>')
+        return "".join(buttons)
 
-    time_filter_buttons = """
+    law_buttons = button_row("law", law_areas, "All law areas")
+    state_buttons = button_row("state", states, "All states")
+    sector_buttons = button_row("sector", sectors, "All sectors")
+    time_buttons = """
       <button class="filter-btn time-btn active" data-days="0">All time</button>
       <button class="filter-btn time-btn" data-days="7">Last week</button>
       <button class="filter-btn time-btn" data-days="30">Last month</button>
@@ -580,7 +667,7 @@ def build_site(archive):
 
     if items_sorted:
         grid_content = ''.join(cards)
-        empty_state = '<div class="empty-state" id="no-results" style="display:none;"><div class="empty-icon">🔍</div><h3>No results for this filter</h3><p>Try a different category, time range, or search term.</p></div>'
+        empty_state = '<div class="empty-state" id="no-results" style="display:none;"><div class="empty-icon">🔍</div><h3>No results for this filter</h3><p>Try a different filter or search term.</p></div>'
     else:
         grid_content = ""
         empty_state = """
@@ -590,8 +677,7 @@ def build_site(archive):
           <p>The daily job hasn't found or delivered anything here yet.</p>
           <ul>
             <li>It runs automatically every day at <strong>9:00 AM IST</strong></li>
-            <li>To check right now: go to your repo's <strong>Actions</strong> tab and see if "Daily Labour Law Digest" has a green checkmark or a red X</li>
-            <li>Never run yet? Click <strong>Run workflow</strong> there, or use "Run now" on the <a href="admin.html">Manage Sources</a> page</li>
+            <li>Click <strong>Run Now</strong> in the top right, or check your repo's <strong>Actions</strong> tab</li>
           </ul>
         </div>"""
 
@@ -616,15 +702,23 @@ def build_site(archive):
   }}
   header h1 {{ margin:0 0 6px; font-size:26px; font-weight:700; letter-spacing:-0.3px; }}
   header p {{ margin:0; opacity:0.88; font-size:14px; }}
+  .top-actions {{ position:absolute; top:16px; right:16px; display:flex; gap:8px; }}
+  .top-btn {{
+    display:inline-flex; align-items:center; gap:5px; font-size:12.5px;
+    color:white; background:rgba(255,255,255,0.16); padding:7px 14px; border-radius:20px;
+    text-decoration:none; font-weight:700; transition:background 0.15s; border:none; cursor:pointer;
+  }}
+  .top-btn:hover {{ background:rgba(255,255,255,0.3); }}
+  .admin-link-row {{ margin-top:16px; }}
   .admin-link {{
-    display:inline-flex; align-items:center; gap:4px; margin-top:16px; font-size:13px;
+    display:inline-flex; align-items:center; gap:4px; font-size:13px;
     color:white; background:rgba(255,255,255,0.16); padding:7px 16px; border-radius:20px;
     text-decoration:none; font-weight:600; transition:background 0.15s;
   }}
   .admin-link:hover {{ background:rgba(255,255,255,0.3); }}
 
   .controls {{
-    max-width:920px; margin:-26px auto 0; padding:0 20px; position:relative; z-index:2;
+    max-width:960px; margin:-26px auto 0; padding:0 20px; position:relative; z-index:2;
   }}
   .search-wrap {{
     background:var(--card); border-radius:14px; box-shadow:0 6px 20px rgba(15,45,74,0.12);
@@ -647,7 +741,7 @@ def build_site(archive):
   .time-btn.active {{ background:var(--blue-light); }}
 
   .grid {{
-    max-width:920px; margin:24px auto 0; padding:0 20px 50px;
+    max-width:960px; margin:24px auto 0; padding:0 20px 50px;
     display:grid; gap:16px; grid-template-columns:1fr;
   }}
   @media (min-width:700px) {{ .grid {{ grid-template-columns:1fr 1fr; }} }}
@@ -662,7 +756,7 @@ def build_site(archive):
   .tag {{ display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:10px; }}
   .date {{ font-size:11.5px; color:var(--muted); }}
   .title {{ font-weight:700; color:var(--navy); font-size:16px; line-height:1.35; margin-bottom:6px; }}
-  .meta {{ font-size:12.5px; color:var(--muted); margin-bottom:8px; font-weight:600; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }}
+  .meta {{ font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }}
   .manual-badge {{ background:#fff7e0; color:#9a7d0a; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:8px; }}
   .summary {{ font-size:14px; line-height:1.5; margin:0 0 12px; color:#3a4552; flex-grow:1; }}
   .read-more {{ font-size:12.5px; font-weight:700; color:var(--blue-light); margin-top:auto; }}
@@ -678,41 +772,67 @@ def build_site(archive):
   .empty-state a {{ color:var(--blue-light); font-weight:600; }}
 
   footer {{ text-align:center; font-size:12.5px; color:var(--muted); padding:6px 20px 36px; }}
+  .run-status-toast {{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--navy); color:white;
+    padding:10px 18px; border-radius:20px; font-size:13px; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,0.2);
+    display:none; z-index:10;
+  }}
 </style>
 </head>
 <body>
 <header>
+  <div class="top-actions">
+    <button class="top-btn" id="run-now-btn" onclick="runNowFromHome()">&#9201; Run Now</button>
+  </div>
   <h1>Gujarat &amp; India Labour Law Tracker</h1>
   <p>PF &middot; ESI &middot; Gujarat Labour Law &middot; Central Labour Codes &middot; Gazettes &mdash; auto-updated daily</p>
-  <br>
-  <a href="admin.html" class="admin-link">+ Manage Sources</a>
+  <div class="admin-link-row">
+    <a href="admin.html" class="admin-link">+ Manage Sources</a>
+  </div>
 </header>
 <div class="controls">
   <div class="search-wrap">
     <input id="search" type="text" placeholder="Search titles and summaries...">
     <div class="filter-group-label">Time range</div>
-    <div class="filters" id="time-filters">{time_filter_buttons}</div>
-    <div class="filter-group-label">Category</div>
-    <div class="filters" id="cat-filters">{''.join(cat_filter_buttons)}</div>
+    <div class="filters" id="time-filters">{time_buttons}</div>
+    <div class="filter-group-label">State</div>
+    <div class="filters" id="state-filters">{state_buttons}</div>
+    <div class="filter-group-label">Law area</div>
+    <div class="filters" id="law-filters">{law_buttons}</div>
+    <div class="filter-group-label">Sector</div>
+    <div class="filters" id="sector-filters">{sector_buttons}</div>
   </div>
 </div>
 <div class="grid" id="grid">
 {grid_content}{empty_state}
 </div>
 <footer>Last updated {updated_str} &middot; {len(items_sorted)} item{'s' if len(items_sorted) != 1 else ''} archived</footer>
+<div class="run-status-toast" id="run-toast"></div>
 <script>
   const search = document.getElementById('search');
-  const catButtons = document.querySelectorAll('.cat-btn');
-  const timeButtons = document.querySelectorAll('.time-btn');
   const TODAY = new Date("{today_iso}T00:00:00+05:30");
-  let activeCat = 'all';
-  let activeDays = 0;
+  let activeLaw = 'all', activeState = 'all', activeSector = 'all', activeDays = 0;
+
+  function wireGroup(selector, setter) {{
+    document.querySelectorAll(selector).forEach(btn => btn.addEventListener('click', () => {{
+      document.querySelectorAll(selector).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      setter(btn);
+      applyFilters();
+    }}));
+  }}
+  wireGroup('.law-btn', b => activeLaw = b.dataset.law);
+  wireGroup('.state-btn', b => activeState = b.dataset.state);
+  wireGroup('.sector-btn', b => activeSector = b.dataset.sector);
+  wireGroup('.time-btn', b => activeDays = parseInt(b.dataset.days, 10));
 
   function applyFilters() {{
     const q = search.value.toLowerCase();
     let visibleCount = 0;
     document.querySelectorAll('.card').forEach(card => {{
-      const matchesCat = activeCat === 'all' || card.dataset.category === activeCat;
+      const matchesLaw = activeLaw === 'all' || card.dataset.law === activeLaw;
+      const matchesState = activeState === 'all' || card.dataset.state === activeState;
+      const matchesSector = activeSector === 'all' || card.dataset.sector === activeSector;
       const matchesSearch = card.dataset.search.includes(q);
       let matchesTime = true;
       if (activeDays > 0) {{
@@ -720,29 +840,45 @@ def build_site(archive):
         const diffDays = (TODAY - added) / (1000 * 60 * 60 * 24);
         matchesTime = diffDays <= activeDays;
       }}
-      const visible = matchesCat && matchesSearch && matchesTime;
+      const visible = matchesLaw && matchesState && matchesSector && matchesSearch && matchesTime;
       card.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     }});
     const noResults = document.getElementById('no-results');
     if (noResults) noResults.style.display = (visibleCount === 0) ? '' : 'none';
   }}
-
-  catButtons.forEach(btn => btn.addEventListener('click', () => {{
-    catButtons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeCat = btn.dataset.cat;
-    applyFilters();
-  }}));
-
-  timeButtons.forEach(btn => btn.addEventListener('click', () => {{
-    timeButtons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeDays = parseInt(btn.dataset.days, 10);
-    applyFilters();
-  }}));
-
   search.addEventListener('input', applyFilters);
+
+  function showToast(msg) {{
+    const t = document.getElementById('run-toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 5000);
+  }}
+
+  async function runNowFromHome() {{
+    const owner = localStorage.getItem("llt_owner");
+    const repo = localStorage.getItem("llt_repo");
+    const token = localStorage.getItem("llt_token");
+    if (!owner || !repo || !token) {{
+      showToast("Connect first via + Manage Sources, then Run Now will work here too.");
+      return;
+    }}
+    try {{
+      const res = await fetch(`https://api.github.com/repos/${{owner}}/${{repo}}/actions/workflows/daily-digest.yml/dispatches`, {{
+        method: "POST",
+        headers: {{ "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "Content-Type": "application/json" }},
+        body: JSON.stringify({{ ref: "main" }}),
+      }});
+      if (!res.ok) {{
+        const err = await res.json().catch(() => ({{}}));
+        throw new Error(err.message || `GitHub error ${{res.status}}`);
+      }}
+      showToast("Triggered! New content will appear here in a minute or two - refresh to check.");
+    }} catch (e) {{
+      showToast("Failed to trigger: " + e.message);
+    }}
+  }}
 </script>
 </body>
 </html>"""
@@ -782,12 +918,15 @@ def main():
             continue
         seen_this_run.add(link)
         summary = summarize(entry, config.get("fallback_summary_length", 400))
+        facets = infer_facets(entry["title"], entry["raw_summary"], hint_category=entry.get("category"))
         item = {
             "id": make_id(link),
             "title": entry["title"] or "Untitled",
             "link": link,
             "source": entry["source"] or "Unknown source",
-            "category": entry["category"],
+            "category": facets["law_area"],
+            "state": facets["state"],
+            "sector": facets["sector"],
             "summary": summary,
             "added_date": today_str,
             "notified": False,
