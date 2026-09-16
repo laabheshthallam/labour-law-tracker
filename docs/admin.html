@@ -5,35 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Manage Sources - Labour Law Tracker</title>
 <style>
-  :root { --blue:#1a5276; --bg:#f4f6f8; }
-  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); margin:0; color:#222; }
-  header { background:var(--blue); color:white; padding:20px 16px; text-align:center; }
+  :root { --navy:#0f2d4a; --blue:#1a5276; --blue-light:#2e86c1; --bg:#f6f8fb; --border:#e7ebf0; --muted:#6b7785; }
+  * { box-sizing:border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); margin:0; color:#1c2733; }
+  header { background:linear-gradient(135deg, var(--navy), var(--blue-light)); color:white; padding:28px 16px; text-align:center; }
   header h1 { margin:0 0 4px; font-size:20px; }
-  header a { color:white; opacity:0.85; font-size:13px; }
+  header a { color:white; opacity:0.88; font-size:13px; }
   .wrap { max-width:640px; margin:0 auto; padding:20px 16px 60px; }
-  .box { background:white; border-radius:10px; padding:18px; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-  .box h2 { margin:0 0 12px; font-size:16px; color:#154360; }
-  label { display:block; font-size:13px; color:#555; margin:10px 0 4px; }
-  input, select { width:100%; padding:8px 10px; font-size:14px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; }
-  button { cursor:pointer; border:none; border-radius:6px; padding:9px 16px; font-size:14px; font-weight:600; }
-  .btn-primary { background:var(--blue); color:white; margin-top:14px; }
-  .btn-primary:hover { background:#154360; }
+  .box { background:white; border-radius:14px; padding:20px; margin-bottom:18px; box-shadow:0 1px 3px rgba(15,45,74,0.06); border:1px solid var(--border); }
+  .box h2 { margin:0 0 6px; font-size:17px; color:var(--navy); }
+  .box .subtitle { font-size:13px; color:var(--muted); margin:0 0 14px; }
+  label { display:block; font-size:13px; color:#555; margin:10px 0 4px; font-weight:600; }
+  input, select { width:100%; padding:10px 12px; font-size:15px; border:1px solid var(--border); border-radius:8px; }
+  button { cursor:pointer; border:none; border-radius:8px; padding:10px 18px; font-size:14px; font-weight:700; }
+  .btn-primary { background:var(--navy); color:white; margin-top:14px; width:100%; }
+  .btn-primary:hover { background:#0a2138; }
   .btn-danger { background:#f4f4f4; color:#c0392b; padding:4px 10px; font-size:12px; }
   .btn-secondary { background:#eaf2f8; color:var(--blue); }
-  .tabs { display:flex; gap:8px; margin-bottom:14px; }
-  .tab-btn { flex:1; background:#f0f0f0; color:#555; padding:8px; border-radius:6px; font-size:13px; }
-  .tab-btn.active { background:var(--blue); color:white; }
-  .source-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid #eee; }
+  .paste-box { display:flex; gap:8px; }
+  .paste-box input { flex:1; }
+  .examples { font-size:12px; color:var(--muted); margin-top:8px; line-height:1.6; }
+  .examples b { color:#3a4552; }
+  .source-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:12px 0; border-bottom:1px solid #eee; }
   .source-row:last-child { border-bottom:none; }
   .source-main { font-size:13px; }
-  .source-main .cat { display:inline-block; font-size:11px; background:#eaf2f8; color:var(--blue); padding:1px 7px; border-radius:8px; margin-right:6px; }
-  .source-main .val { font-weight:600; }
-  .muted { color:#888; font-size:12px; }
-  .status { font-size:13px; margin-top:10px; padding:8px 10px; border-radius:6px; display:none; }
+  .source-main .cat { display:inline-block; font-size:11px; background:#eaf2f8; color:var(--blue); padding:1px 8px; border-radius:8px; margin-right:6px; font-weight:700; }
+  .source-main .val { font-weight:700; }
+  .muted { color:var(--muted); font-size:12px; }
+  .status { font-size:13px; margin-top:12px; padding:10px 12px; border-radius:8px; display:none; }
   .status.ok { display:block; background:#eafaf1; color:#1e8449; }
   .status.err { display:block; background:#fdedec; color:#c0392b; }
   .hidden { display:none; }
-  .hint { font-size:12px; color:#888; margin-top:4px; }
+  .hint { font-size:12px; color:var(--muted); margin-top:4px; }
+  details { margin-top:10px; }
+  summary { cursor:pointer; font-size:13px; font-weight:700; color:var(--blue); padding:6px 0; }
+  .adv-section { border-top:1px solid var(--border); margin-top:14px; padding-top:14px; }
 </style>
 </head>
 <body>
@@ -46,12 +52,13 @@
 
   <div class="box" id="setup-box">
     <h2>1. Connect to your GitHub repo</h2>
-    <p class="hint">This page writes changes straight to your repo's <code>data/sources.json</code> file so the daily job picks them up automatically. Your token is stored only in this browser (never sent anywhere except api.github.com).</p>
+    <p class="subtitle">One-time setup so this page can save what you add.</p>
+    <p class="hint">Your token is stored only in this browser and only ever sent to api.github.com.</p>
     <label>GitHub username / org</label>
     <input id="owner" type="text" placeholder="e.g. yourusername">
     <label>Repository name</label>
     <input id="repo" type="text" placeholder="e.g. labour-law-tracker">
-    <label>GitHub personal access token (fine-grained, with "Contents: read & write" and "Actions: read & write" on this repo)</label>
+    <label>GitHub personal access token</label>
     <input id="token" type="password" placeholder="github_pat_...">
     <button class="btn-primary" onclick="saveSetup()">Save &amp; Connect</button>
     <div class="status" id="setup-status"></div>
@@ -60,43 +67,44 @@
   <div id="app" class="hidden">
 
     <div class="box">
-      <h2>Add a source</h2>
-      <div class="tabs">
-        <button class="tab-btn active" id="tab-query" onclick="switchTab('query')">Search topic</button>
-        <button class="tab-btn" id="tab-feed" onclick="switchTab('feed')">Direct feed / channel</button>
+      <h2>Add something to track</h2>
+      <p class="subtitle">Just paste a link. We'll figure out what to do with it.</p>
+      <div class="paste-box">
+        <input id="paste-url" type="text" placeholder="Paste a link here...">
       </div>
-
-      <div id="form-query">
-        <label>Search phrase (news + video search)</label>
-        <input id="q-query" type="text" placeholder='e.g. "Gujarat apprenticeship rules"'>
-        <label>Category label</label>
-        <input id="q-category" type="text" placeholder="e.g. Gujarat Labour Law" list="cat-list">
-        <button class="btn-primary" onclick="addQuery()">Add search topic</button>
-      </div>
-
-      <div id="form-feed" class="hidden">
-        <label>Feed URL (RSS/Atom, or a YouTube channel feed)</label>
-        <input id="f-url" type="text" placeholder="https://...">
-        <label>Source name (shown in digest)</label>
-        <input id="f-name" type="text" placeholder="e.g. Labour Law Advisor">
-        <label>Category label</label>
-        <input id="f-category" type="text" placeholder="e.g. Videos" list="cat-list">
-        <p class="hint">To find a YouTube channel's feed: open the channel page &rarr; view page source &rarr; search for "channelId" &rarr; use<br><code>https://www.youtube.com/feeds/videos.xml?channel_id=THAT_ID</code></p>
-        <button class="btn-primary" onclick="addFeed()">Add feed</button>
-      </div>
-
-      <datalist id="cat-list"></datalist>
+      <label>Category (optional - helps with filtering)</label>
+      <input id="paste-category" type="text" placeholder="e.g. Gujarat Labour Law" list="cat-list">
+      <button class="btn-primary" onclick="addSmartLink()">Add</button>
       <div class="status" id="add-status"></div>
+      <div class="examples">
+        <b>A specific article, PDF, or gazette notification</b> &rarr; saved permanently, shows up on the tracker directly.<br>
+        <b>A specific YouTube video</b> &rarr; saved the same way, with its title fetched automatically.<br>
+        <b>A Google search link</b> (search something on google.com, copy the address bar URL) &rarr; we'll keep watching that search every day going forward.<br>
+        <b>A YouTube channel link</b> &rarr; we'll keep watching that channel for new videos going forward.
+      </div>
+      <datalist id="cat-list"></datalist>
+
+      <details class="adv-section">
+        <summary>Advanced: add a raw RSS/Atom feed URL directly</summary>
+        <label>Feed URL</label>
+        <input id="f-url" type="text" placeholder="https://.../feed.xml">
+        <label>Source name</label>
+        <input id="f-name" type="text" placeholder="e.g. Official Ministry Feed">
+        <label>Category</label>
+        <input id="f-category" type="text" placeholder="e.g. Central Labour Law" list="cat-list">
+        <button class="btn-secondary" style="margin-top:10px;" onclick="addFeed()">Add feed</button>
+      </details>
     </div>
 
     <div class="box">
-      <h2>Current sources added here <span class="muted" id="source-count"></span></h2>
+      <h2>Currently being watched <span class="muted" id="source-count"></span></h2>
+      <p class="subtitle">Ongoing searches and channels - these get checked every day. (Single articles/videos you added go straight to the tracker page instead, not listed here.)</p>
       <div id="source-list"><p class="muted">Loading...</p></div>
     </div>
 
     <div class="box">
       <h2>Run now</h2>
-      <p class="hint">Sources take effect on the next run automatically (daily at 9am IST). Or trigger one right now to test:</p>
+      <p class="hint">New things you add here take effect on the next run automatically (daily, 9am IST). Or trigger one right now:</p>
       <button class="btn-secondary" onclick="runNow()">Run the tracker now</button>
       <div class="status" id="run-status"></div>
     </div>
@@ -124,18 +132,8 @@
     el.className = "status " + (ok ? "ok" : "err");
   }
 
-  function switchTab(which) {
-    document.getElementById("form-query").classList.toggle("hidden", which !== "query");
-    document.getElementById("form-feed").classList.toggle("hidden", which !== "feed");
-    document.getElementById("tab-query").classList.toggle("active", which === "query");
-    document.getElementById("tab-feed").classList.toggle("active", which === "feed");
-  }
-
   function ghHeaders(token) {
-    return {
-      "Authorization": "Bearer " + token,
-      "Accept": "application/vnd.github+json",
-    };
+    return { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json" };
   }
 
   async function saveSetup() {
@@ -166,7 +164,6 @@
     try {
       const res = await fetch(`${API}/repos/${owner}/${repo}/contents/data/sources.json`, { headers: ghHeaders(token) });
       if (res.status === 404) {
-        // File doesn't exist yet - that's fine, we'll create it on first save
         sourcesData = [];
         fileSha = null;
       } else if (!res.ok) {
@@ -207,23 +204,34 @@
 
   function renderSources() {
     const list = document.getElementById("source-list");
-    document.getElementById("source-count").textContent = `(${sourcesData.length})`;
+    const ongoing = sourcesData.filter(s => s.type === "query" || s.type === "feed");
+    const pending = sourcesData.filter(s => s.type === "smart" && !s.resolved);
+    document.getElementById("source-count").textContent = `(${ongoing.length} watched, ${pending.length} pending)`;
+
     const cats = [...new Set(sourcesData.map(s => s.category).filter(Boolean))];
     document.getElementById("cat-list").innerHTML = cats.map(c => `<option value="${c}">`).join("");
 
-    if (sourcesData.length === 0) {
-      list.innerHTML = '<p class="muted">No sources added here yet - the defaults in config.yaml are still running.</p>';
+    if (ongoing.length === 0 && pending.length === 0) {
+      list.innerHTML = '<p class="muted">Nothing added here yet - the defaults in config.yaml are still running.</p>';
       return;
     }
-    list.innerHTML = sourcesData.map((s, i) => {
-      const main = s.type === "query"
-        ? `<span class="cat">${escapeHtml(s.category)}</span><span class="val">"${escapeHtml(s.query)}"</span>`
-        : `<span class="cat">${escapeHtml(s.category)}</span><span class="val">${escapeHtml(s.name || s.url)}</span><br><span class="muted">${escapeHtml(s.url)}</span>`;
-      return `<div class="source-row">
-                <div class="source-main">${main}</div>
-                <button class="btn-danger" onclick="removeSource(${i})">Remove</button>
+    let html = "";
+    pending.forEach((s) => {
+      html += `<div class="source-row">
+                <div class="source-main"><span class="cat">pending</span><span class="val">${escapeHtml(s.url)}</span><br><span class="muted">Will be processed on the next run</span></div>
               </div>`;
-    }).join("");
+    });
+    ongoing.forEach((s) => {
+      const realIndex = sourcesData.indexOf(s);
+      const main = s.type === "query"
+        ? `<span class="cat">${escapeHtml(s.category)}</span><span class="val">🔍 "${escapeHtml(s.query)}"</span>`
+        : `<span class="cat">${escapeHtml(s.category)}</span><span class="val">📡 ${escapeHtml(s.name || s.url)}</span><br><span class="muted">${escapeHtml(s.url)}</span>`;
+      html += `<div class="source-row">
+                <div class="source-main">${main}</div>
+                <button class="btn-danger" onclick="removeSource(${realIndex})">Remove</button>
+              </div>`;
+    });
+    list.innerHTML = html;
   }
 
   function escapeHtml(str) {
@@ -232,17 +240,22 @@
     return d.innerHTML;
   }
 
-  async function addQuery() {
-    const query = document.getElementById("q-query").value.trim();
-    const category = document.getElementById("q-category").value.trim();
-    if (!query || !category) {
-      showStatus("add-status", "Please fill in both fields.", false);
+  function isValidUrl(str) {
+    try { new URL(str); return true; } catch { return false; }
+  }
+
+  async function addSmartLink() {
+    const url = document.getElementById("paste-url").value.trim();
+    const category = document.getElementById("paste-category").value.trim();
+    if (!url || !isValidUrl(url)) {
+      showStatus("add-status", "Please paste a valid link (starting with http:// or https://).", false);
       return;
     }
-    sourcesData.push({ type: "query", query, category });
-    await persist("Add source via website: " + query);
-    document.getElementById("q-query").value = "";
-    document.getElementById("q-category").value = "";
+    sourcesData.push({ type: "smart", url, category, resolved: false });
+    await persist("Add link via website: " + url);
+    document.getElementById("paste-url").value = "";
+    document.getElementById("paste-category").value = "";
+    showStatus("add-status", "Saved! It'll be processed on the next run (or click \"Run now\" below to do it immediately).", true);
   }
 
   async function addFeed() {
@@ -253,7 +266,7 @@
       showStatus("add-status", "Please fill in the feed URL and category.", false);
       return;
     }
-    sourcesData.push({ type: "feed", url, name, category });
+    sourcesData.push({ type: "feed", url, name, category, resolved: true });
     await persist("Add feed via website: " + (name || url));
     document.getElementById("f-url").value = "";
     document.getElementById("f-name").value = "";
@@ -270,7 +283,6 @@
     try {
       await saveSourcesToGitHub(message);
       renderSources();
-      showStatus("add-status", "Saved. It will be included in the next daily run.", true);
     } catch (e) {
       showStatus("add-status", "Failed to save: " + e.message, false);
     }
@@ -288,18 +300,15 @@
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || `GitHub error ${res.status}`);
       }
-      showStatus("run-status", "Triggered! Check Telegram/email in a minute or two.", true);
+      showStatus("run-status", "Triggered! Check the tracker page and Telegram/email in a minute or two.", true);
     } catch (e) {
       showStatus("run-status", "Failed to trigger: " + e.message, false);
     }
   }
 
-  // Auto-connect if already set up in this browser
   (function init() {
     const { owner, repo, token } = getSetup();
-    if (owner && repo && token) {
-      connectAndLoad();
-    }
+    if (owner && repo && token) connectAndLoad();
   })();
 </script>
 </body>
