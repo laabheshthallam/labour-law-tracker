@@ -38,13 +38,16 @@
     border-radius:10px; outline:none; transition:border-color 0.15s;
   }
   #search:focus { border-color:var(--blue-light); }
-  .filters { margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; }
+  .filter-group-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); margin:14px 0 6px; }
+  .filter-group-label:first-of-type { margin-top:12px; }
+  .filters { display:flex; flex-wrap:wrap; gap:8px; }
   .filter-btn {
     background:#f0f3f7; border:1px solid transparent; color:var(--muted); border-radius:18px;
     padding:6px 14px; font-size:13px; cursor:pointer; font-weight:600; transition:all 0.15s;
   }
   .filter-btn:hover { background:#e4e9ef; }
   .filter-btn.active { background:var(--navy); color:white; }
+  .time-btn.active { background:var(--blue-light); }
 
   .grid {
     max-width:920px; margin:24px auto 0; padding:0 20px 50px;
@@ -62,7 +65,8 @@
   .tag { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:10px; }
   .date { font-size:11.5px; color:var(--muted); }
   .title { font-weight:700; color:var(--navy); font-size:16px; line-height:1.35; margin-bottom:6px; }
-  .meta { font-size:12.5px; color:var(--muted); margin-bottom:8px; font-weight:600; }
+  .meta { font-size:12.5px; color:var(--muted); margin-bottom:8px; font-weight:600; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .manual-badge { background:#fff7e0; color:#9a7d0a; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:8px; }
   .summary { font-size:14px; line-height:1.5; margin:0 0 12px; color:#3a4552; flex-grow:1; }
   .read-more { font-size:12.5px; font-weight:700; color:var(--blue-light); margin-top:auto; }
 
@@ -82,14 +86,23 @@
 <body>
 <header>
   <h1>Gujarat &amp; India Labour Law Tracker</h1>
-  <p>PF &middot; ESI &middot; Gujarat Labour Law &middot; Central Labour Codes &mdash; auto-updated daily</p>
+  <p>PF &middot; ESI &middot; Gujarat Labour Law &middot; Central Labour Codes &middot; Gazettes &mdash; auto-updated daily</p>
   <br>
   <a href="admin.html" class="admin-link">+ Manage Sources</a>
 </header>
 <div class="controls">
   <div class="search-wrap">
     <input id="search" type="text" placeholder="Search titles and summaries...">
-    <div class="filters"><button class="filter-btn active" data-cat="all">All</button></div>
+    <div class="filter-group-label">Time range</div>
+    <div class="filters" id="time-filters">
+      <button class="filter-btn time-btn active" data-days="0">All time</button>
+      <button class="filter-btn time-btn" data-days="7">Last week</button>
+      <button class="filter-btn time-btn" data-days="30">Last month</button>
+      <button class="filter-btn time-btn" data-days="90">Last 3 months</button>
+      <button class="filter-btn time-btn" data-days="365">Last year</button>
+    </div>
+    <div class="filter-group-label">Category</div>
+    <div class="filters" id="cat-filters"><button class="filter-btn cat-btn active" data-cat="all">All categories</button></div>
   </div>
 </div>
 <div class="grid" id="grid">
@@ -105,25 +118,46 @@
           </ul>
         </div>
 </div>
-<footer>Last updated 16 Sep 2026, 10:14 AM IST &middot; 0 items archived</footer>
+<footer>Last updated 16 Sep 2026, 03:02 PM IST &middot; 0 items archived</footer>
 <script>
   const search = document.getElementById('search');
-  const buttons = document.querySelectorAll('.filter-btn');
+  const catButtons = document.querySelectorAll('.cat-btn');
+  const timeButtons = document.querySelectorAll('.time-btn');
+  const TODAY = new Date("2026-09-16T00:00:00+05:30");
   let activeCat = 'all';
+  let activeDays = 0;
 
   function applyFilters() {
     const q = search.value.toLowerCase();
+    let visibleCount = 0;
     document.querySelectorAll('.card').forEach(card => {
       const matchesCat = activeCat === 'all' || card.dataset.category === activeCat;
       const matchesSearch = card.dataset.search.includes(q);
-      card.style.display = (matchesCat && matchesSearch) ? '' : 'none';
+      let matchesTime = true;
+      if (activeDays > 0) {
+        const added = new Date(card.dataset.added + "T00:00:00+05:30");
+        const diffDays = (TODAY - added) / (1000 * 60 * 60 * 24);
+        matchesTime = diffDays <= activeDays;
+      }
+      const visible = matchesCat && matchesSearch && matchesTime;
+      card.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
     });
+    const noResults = document.getElementById('no-results');
+    if (noResults) noResults.style.display = (visibleCount === 0) ? '' : 'none';
   }
 
-  buttons.forEach(btn => btn.addEventListener('click', () => {
-    buttons.forEach(b => b.classList.remove('active'));
+  catButtons.forEach(btn => btn.addEventListener('click', () => {
+    catButtons.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     activeCat = btn.dataset.cat;
+    applyFilters();
+  }));
+
+  timeButtons.forEach(btn => btn.addEventListener('click', () => {
+    timeButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeDays = parseInt(btn.dataset.days, 10);
     applyFilters();
   }));
 
