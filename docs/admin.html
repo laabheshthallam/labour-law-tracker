@@ -68,21 +68,19 @@
 
     <div class="box">
       <h2>Add something to track</h2>
-      <p class="subtitle">Just paste a link. We'll figure out what to do with it.</p>
+      <p class="subtitle">Just paste a link and press Enter. That's it.</p>
       <div class="paste-box">
-        <input id="paste-url" type="text" placeholder="Paste a link here...">
+        <input id="paste-url" type="text" placeholder="Paste a link here..." onkeydown="if(event.key==='Enter') addSmartLink()">
+        <button class="btn-primary" style="margin-top:0; width:auto; white-space:nowrap;" onclick="addSmartLink()">Add</button>
       </div>
-      <label>Category (optional - helps with filtering)</label>
-      <input id="paste-category" type="text" placeholder="e.g. Gujarat Labour Law" list="cat-list">
-      <button class="btn-primary" onclick="addSmartLink()">Add</button>
       <div class="status" id="add-status"></div>
       <div class="examples">
         <b>A specific article, PDF, or gazette notification</b> &rarr; saved permanently, shows up on the tracker directly.<br>
         <b>A specific YouTube video</b> &rarr; saved the same way, with its title fetched automatically.<br>
         <b>A Google search link</b> (search something on google.com, copy the address bar URL) &rarr; we'll keep watching that search every day going forward.<br>
-        <b>A YouTube channel link</b> &rarr; we'll keep watching that channel for new videos going forward.
+        <b>A YouTube channel link</b> &rarr; we'll keep watching that channel for new videos going forward.<br><br>
+        State, law area, and sector tags are detected automatically from the content - nothing to fill in.
       </div>
-      <datalist id="cat-list"></datalist>
 
       <details class="adv-section">
         <summary>Advanced: add a raw RSS/Atom feed URL directly</summary>
@@ -90,8 +88,6 @@
         <input id="f-url" type="text" placeholder="https://.../feed.xml">
         <label>Source name</label>
         <input id="f-name" type="text" placeholder="e.g. Official Ministry Feed">
-        <label>Category</label>
-        <input id="f-category" type="text" placeholder="e.g. Central Labour Law" list="cat-list">
         <button class="btn-secondary" style="margin-top:10px;" onclick="addFeed()">Add feed</button>
       </details>
     </div>
@@ -208,9 +204,6 @@
     const pending = sourcesData.filter(s => s.type === "smart" && !s.resolved);
     document.getElementById("source-count").textContent = `(${ongoing.length} watched, ${pending.length} pending)`;
 
-    const cats = [...new Set(sourcesData.map(s => s.category).filter(Boolean))];
-    document.getElementById("cat-list").innerHTML = cats.map(c => `<option value="${c}">`).join("");
-
     if (ongoing.length === 0 && pending.length === 0) {
       list.innerHTML = '<p class="muted">Nothing added here yet - the defaults in config.yaml are still running.</p>';
       return;
@@ -224,8 +217,8 @@
     ongoing.forEach((s) => {
       const realIndex = sourcesData.indexOf(s);
       const main = s.type === "query"
-        ? `<span class="cat">${escapeHtml(s.category)}</span><span class="val">🔍 "${escapeHtml(s.query)}"</span>`
-        : `<span class="cat">${escapeHtml(s.category)}</span><span class="val">📡 ${escapeHtml(s.name || s.url)}</span><br><span class="muted">${escapeHtml(s.url)}</span>`;
+        ? `<span class="cat">${escapeHtml(s.category || "auto-detected")}</span><span class="val">🔍 "${escapeHtml(s.query)}"</span>`
+        : `<span class="cat">${escapeHtml(s.category || "feed")}</span><span class="val">📡 ${escapeHtml(s.name || s.url)}</span><br><span class="muted">${escapeHtml(s.url)}</span>`;
       html += `<div class="source-row">
                 <div class="source-main">${main}</div>
                 <button class="btn-danger" onclick="removeSource(${realIndex})">Remove</button>
@@ -246,31 +239,27 @@
 
   async function addSmartLink() {
     const url = document.getElementById("paste-url").value.trim();
-    const category = document.getElementById("paste-category").value.trim();
     if (!url || !isValidUrl(url)) {
       showStatus("add-status", "Please paste a valid link (starting with http:// or https://).", false);
       return;
     }
-    sourcesData.push({ type: "smart", url, category, resolved: false });
+    sourcesData.push({ type: "smart", url, resolved: false });
     await persist("Add link via website: " + url);
     document.getElementById("paste-url").value = "";
-    document.getElementById("paste-category").value = "";
     showStatus("add-status", "Saved! It'll be processed on the next run (or click \"Run now\" below to do it immediately).", true);
   }
 
   async function addFeed() {
     const url = document.getElementById("f-url").value.trim();
     const name = document.getElementById("f-name").value.trim();
-    const category = document.getElementById("f-category").value.trim();
-    if (!url || !category) {
-      showStatus("add-status", "Please fill in the feed URL and category.", false);
+    if (!url) {
+      showStatus("add-status", "Please fill in the feed URL.", false);
       return;
     }
-    sourcesData.push({ type: "feed", url, name, category, resolved: true });
+    sourcesData.push({ type: "feed", url, name, category: null, resolved: true });
     await persist("Add feed via website: " + (name || url));
     document.getElementById("f-url").value = "";
     document.getElementById("f-name").value = "";
-    document.getElementById("f-category").value = "";
   }
 
   async function removeSource(index) {
