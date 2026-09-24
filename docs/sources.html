@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sources Hub &amp; Management | India &amp; Gujarat Labour Law Tracker</title>
+  <meta name="description" content="Manage and add news publications, regional portals, and gazette sources for real-time labour law monitoring.">
+
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Modern Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .source-list-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+    .source-list-table th, .source-list-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13.5px;
+    }
+    .source-list-table th {
+      background: var(--bg-input);
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+    .source-list-table tr:last-child td {
+      border-bottom: none;
+    }
+    .btn-action-small {
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      transition: all var(--transition-fast);
+    }
+    .btn-action-small:hover {
+      background: var(--border-hover);
+      color: var(--text-primary);
+    }
+    .btn-action-delete {
+      color: var(--danger);
+      border-color: #fca5a5;
+    }
+    .btn-action-delete:hover {
+      background: var(--danger-light);
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="brand-area">
+        <div class="brand-icon">⚖️</div>
+        <div>
+          <div class="brand-title">India &amp; Gujarat Labour Law Tracker</div>
+          <div class="brand-subtitle">Sources Hub &amp; Monitored Publications</div>
+        </div>
+      </a>
+
+      <div class="nav-actions">
+        <a href="index.html" class="nav-btn">
+          &larr; Back to Tracker Dashboard
+        </a>
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
+          🌙
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container" style="max-width: 960px; margin-top: 30px; margin-bottom: 50px;">
+
+    <!-- Add Source Box -->
+    <section class="filter-card" style="margin-bottom: 30px;">
+      <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 6px; color: var(--text-primary);">
+        ➕ Add New Source to Continuous Monitoring
+      </h2>
+      <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 18px;">
+        Suppose the tracker doesn't yet monitor a specific regional newspaper or legal portal (like <em>Daily Excelsior</em>). Paste any link from that publication below and click <strong>"Add This Source"</strong>. The system will automatically configure and reference that source in all future daily 6:00 PM update cycles!
+      </p>
+
+      <form id="addSourcePageForm" style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="url" id="pageSourceUrlInput" class="form-input" style="flex: 1; min-width: 280px;" placeholder="e.g. https://www.dailyexcelsior.com/cs-atal-dulloo-reviews-implementation-of-new-labour-codes-in-jk/" required>
+        <button type="submit" class="search-action-btn" style="white-space: nowrap;">
+          ➕ Add This Source
+        </button>
+      </form>
+
+      <div style="background: var(--bg-input); border-radius: var(--radius-md); padding: 14px; margin-top: 18px; font-size: 13px; color: var(--text-secondary);">
+        💡 <strong>Example URL Tested:</strong> <code>https://www.dailyexcelsior.com/cs-atal-dulloo-reviews-implementation-of-new-labour-codes-in-jk/</code><br>
+        &rarr; Auto-detected: Domain <strong>dailyexcelsior.com</strong> &middot; Region: <strong>Jammu &amp; Kashmir</strong> &middot; Topic: <strong>Labour Codes</strong>.
+      </div>
+    </section>
+
+    <!-- Currently Tracked Sources Table -->
+    <section class="filter-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+        <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary);">
+          📡 Currently Monitored Sources &amp; Domains (<span id="sourceCountDisplay">0</span>)
+        </h3>
+        <button class="btn-action-small" onclick="loadSourcesList()">🔄 Refresh List</button>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="source-list-table">
+          <thead>
+            <tr>
+              <th>Publication / Source</th>
+              <th>Domain</th>
+              <th>Region / State</th>
+              <th>Law Focus</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sourcesTableBody">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <div>
+        <strong>India &amp; Gujarat Labour Law Tracker</strong> &middot; Sources Management Hub.
+      </div>
+      <div class="footer-links">
+        <a href="index.html">&larr; Tracker Dashboard</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/supabase-client.js"></script>
+  <script src="js/sources-manager.js"></script>
+
+  <script>
+    // Theme toggle
+    const themeBtn = document.getElementById('themeToggleBtn');
+    let currentTheme = localStorage.getItem('labour_tracker_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    themeBtn.innerHTML = currentTheme === 'dark' ? '☀️' : '🌙';
+
+    themeBtn.addEventListener('click', () => {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem('labour_tracker_theme', currentTheme);
+      themeBtn.innerHTML = currentTheme === 'dark' ? '☀️' : '🌙';
+    });
+
+    function showToast(msg) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `🔔 <span>${msg}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    async function loadSourcesList() {
+      let sources = [];
+      try {
+        const res = await fetch('data/sources.json?t=' + Date.now());
+        if (res.ok) sources = await res.json();
+      } catch (e) {
+        console.warn('Could not load root sources.json:', e);
+      }
+
+      // Merge with custom sources in localStorage
+      const localCustom = SourcesManager.getLocalSources();
+      const combined = [...localCustom, ...sources];
+      
+      // Deduplicate by domain
+      const seen = new Set();
+      const uniqueSources = [];
+      combined.forEach(s => {
+        if (!seen.has(s.domain)) {
+          seen.add(s.domain);
+          uniqueSources.push(s);
+        }
+      });
+
+      document.getElementById('sourceCountDisplay').textContent = uniqueSources.length;
+      const tbody = document.getElementById('sourcesTableBody');
+
+      if (uniqueSources.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No sources loaded.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = uniqueSources.map(s => `
+        <tr>
+          <td><strong>${escapeHtml(s.name)}</strong></td>
+          <td><code style="background:var(--bg-input); padding:2px 6px; border-radius:4px;">${escapeHtml(s.domain || '')}</code></td>
+          <td><span class="badge badge-state">📍 ${escapeHtml(s.state || 'National')}</span></td>
+          <td><span class="badge badge-category">🏷️ ${escapeHtml(s.category || 'Labour Codes')}</span></td>
+          <td><span style="color:var(--success); font-weight:700;">● Active</span></td>
+          <td>
+            <a href="${escapeHtml(s.url || 'https://' + s.domain)}" target="_blank" rel="noopener" class="btn-action-small">Visit &nearr;</a>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('addSourcePageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('pageSourceUrlInput');
+      const url = input.value.trim();
+      if (!url) return;
+
+      try {
+        showToast('Registering source...');
+        const registered = await SourcesManager.addSource(url);
+        input.value = '';
+        showToast(`Source '${registered.name}' added successfully!`);
+        loadSourcesList();
+      } catch (err) {
+        alert(err.message || 'Failed to add source');
+      }
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSourcesList);
+  </script>
+</body>
+</html>

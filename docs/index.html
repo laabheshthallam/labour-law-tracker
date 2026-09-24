@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>India & Gujarat Labour Law Tracker | Real-Time PF, ESIC, State Policies & Gazette News</title>
+  <meta name="description" content="Real-time Indian Labour Law, EPFO, ESIC, Gratuity, EPS Changes, Gig Economy, Remote Work, and State-wise Policy Tracker with 40-50 word summaries and instant source links.">
+
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Modern Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Site Header / Navbar -->
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="brand-area">
+        <div class="brand-icon">⚖️</div>
+        <div>
+          <div class="brand-title">India &amp; Gujarat Labour Law Tracker</div>
+          <div class="brand-subtitle">PF &middot; ESIC &middot; Gratuity &middot; Labour Codes &middot; State Policies &middot; Daily 6:00 PM Digest</div>
+        </div>
+      </a>
+
+      <div class="nav-actions">
+        <button class="nav-btn" onclick="App.openModal('addSourceModal')">
+          ➕ Add Source
+        </button>
+        <a href="sources.html" class="nav-btn">
+          📡 Sources Hub
+        </a>
+        <button class="nav-btn" onclick="App.toggleBookmarksView()">
+          ★ Saved Articles
+        </button>
+        <button class="nav-btn" onclick="App.openModal('alertsModal')">
+          📬 Telegram &amp; Gmail Alerts
+        </button>
+        <button class="nav-btn btn-accent" id="authNavBtn" onclick="App.openModal('authModal')">
+          🔐 Sign In / Supabase
+        </button>
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
+          🌙
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero & Live Stats Banner -->
+  <section class="hero-banner">
+    <div class="container hero-content">
+      <div class="hero-text">
+        <h1>
+          National &amp; State Labour Law Regulatory Intelligence
+          <span class="live-badge"><span class="live-pulse"></span> Real-Time &middot; 6:00 PM Daily Updates</span>
+        </h1>
+        <p>Comprehensive tracking of EPFO circulars, ESIC notifications, EPS pension changes, state gazettes, gig economy rules, and remote work compliance.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-pill">
+          <span class="stat-number" id="statTotal">0</span>
+          <span class="stat-label">Tracked Updates</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-number" id="statStates">0</span>
+          <span class="stat-label">States / Regions</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-number" id="statCategories">0</span>
+          <span class="stat-label">Law Categories</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-number" id="statToday" style="color:var(--success);">Live</span>
+          <span class="stat-label">Daily Status</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- Filter & Control Center -->
+    <section class="controls-wrapper">
+      <div class="filter-card">
+
+        <!-- Search Bar -->
+        <div class="search-row">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search by law, notification no., court ruling, keyword, or publisher (e.g. 'Daily Excelsior', 'EPFO', 'Gujarat minimum wage', 'gig workers')...">
+            <button class="clear-search-btn" id="clearSearchBtn" title="Clear Search">✕</button>
+          </div>
+          <button class="search-action-btn" id="liveRefreshBtn" title="Refresh Live Data">
+            🔄 Live Refresh
+          </button>
+        </div>
+
+        <!-- Filter 1: State-Wise Policy -->
+        <div class="filter-group">
+          <div class="filter-header">
+            <span class="filter-title">📍 State-Wise Policy &amp; Jurisdiction</span>
+          </div>
+          <div class="filter-chips" id="stateChips">
+            <button class="chip-btn state-chip active" data-group="state" data-val="all">All States &amp; Central</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Gujarat">Gujarat</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Jammu & Kashmir">Jammu &amp; Kashmir</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Maharashtra">Maharashtra</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Karnataka">Karnataka</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Tamil Nadu">Tamil Nadu</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Delhi / NCR">Delhi / NCR</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Uttar Pradesh">Uttar Pradesh</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Rajasthan">Rajasthan</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="Telangana">Telangana</button>
+            <button class="chip-btn state-chip" data-group="state" data-val="National / Central">National / Central</button>
+          </div>
+        </div>
+
+        <!-- Filter 2: Law Area / Regulatory Topic -->
+        <div class="filter-group">
+          <div class="filter-header">
+            <span class="filter-title">🏷️ Law Area &amp; Compliance Category</span>
+          </div>
+          <div class="filter-chips" id="categoryChips">
+            <button class="chip-btn active" data-group="category" data-val="all">All Topics</button>
+            <button class="chip-btn" data-group="category" data-val="PF / EPFO">PF / EPFO</button>
+            <button class="chip-btn" data-group="category" data-val="ESI / ESIC">ESI / ESIC</button>
+            <button class="chip-btn" data-group="category" data-val="EPS (Pension) Changes">EPS (Pension) Changes</button>
+            <button class="chip-btn" data-group="category" data-val="Gratuity">Gratuity</button>
+            <button class="chip-btn" data-group="category" data-val="Labour Codes">Labour Codes (4 Codes)</button>
+            <button class="chip-btn" data-group="category" data-val="Minimum Wages">Minimum Wages &amp; VDA</button>
+            <button class="chip-btn" data-group="category" data-val="Gig Economy & Platform Workers">Gig &amp; Platform Workers</button>
+            <button class="chip-btn" data-group="category" data-val="Remote & Hybrid Work">Remote &amp; Hybrid Work</button>
+            <button class="chip-btn" data-group="category" data-val="Gazette / Notifications">Gazettes &amp; MoLE Circulars</button>
+            <button class="chip-btn" data-group="category" data-val="Shops & Establishment Act">Shops &amp; Establishments</button>
+            <button class="chip-btn" data-group="category" data-val="Factories Act">Factories &amp; Safety</button>
+          </div>
+        </div>
+
+        <!-- Filter 3: Sector & Industry -->
+        <div class="filter-group">
+          <div class="filter-header">
+            <span class="filter-title">🏭 Industry &amp; Workforce Sector</span>
+          </div>
+          <div class="filter-chips" id="sectorChips">
+            <button class="chip-btn active" data-group="sector" data-val="all">All Sectors</button>
+            <button class="chip-btn" data-group="sector" data-val="IT / ITES & Startups">IT / ITES &amp; Tech Startups</button>
+            <button class="chip-btn" data-group="sector" data-val="Gig & Logistics">Gig, Delivery &amp; Quick Commerce</button>
+            <button class="chip-btn" data-group="sector" data-val="Manufacturing">Manufacturing &amp; Engineering</button>
+            <button class="chip-btn" data-group="sector" data-val="Textile & Garments">Textile &amp; Garments</button>
+            <button class="chip-btn" data-group="sector" data-val="Construction">Construction &amp; Real Estate</button>
+            <button class="chip-btn" data-group="sector" data-val="BFSI">BFSI &amp; FinTech</button>
+            <button class="chip-btn" data-group="sector" data-val="Retail & E-commerce">Retail &amp; E-commerce</button>
+            <button class="chip-btn" data-group="sector" data-val="Healthcare">Healthcare &amp; Pharma</button>
+          </div>
+        </div>
+
+        <!-- Filter 4: Time Period -->
+        <div class="filter-group">
+          <div class="filter-header">
+            <span class="filter-title">📅 Time Period (Historical from October 2025 to Present)</span>
+          </div>
+          <div class="filter-chips" id="timeChips">
+            <button class="chip-btn time-chip active" data-group="time" data-val="all">All Time (Since Oct 2025)</button>
+            <button class="chip-btn time-chip" data-group="time" data-val="1d">Today / Last 24 Hours</button>
+            <button class="chip-btn time-chip" data-group="time" data-val="7d">Last 7 Days (Week)</button>
+            <button class="chip-btn time-chip" data-group="time" data-val="30d">Last 30 Days (Month)</button>
+            <button class="chip-btn time-chip" data-group="time" data-val="90d">Last 3 Months</button>
+            <button class="chip-btn time-chip" data-group="time" data-val="365d">Last Year</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Results Meta Bar -->
+    <div class="results-meta-bar">
+      <div class="results-count" id="resultsCount">
+        Loading updates...
+      </div>
+
+      <div class="sort-view-controls">
+        <select id="sortSelect" class="select-control" aria-label="Sort articles">
+          <option value="newest">Sort: Newest First</option>
+          <option value="oldest">Sort: Oldest First</option>
+        </select>
+
+        <button class="view-toggle-btn active" id="viewToggleGrid" title="Grid View">🔲 Grid</button>
+        <button class="view-toggle-btn" id="viewToggleList" title="Compact List View">📄 List</button>
+        <button class="chip-btn" onclick="App.resetFilters()" style="margin-left:8px;">Reset Filters</button>
+      </div>
+    </div>
+
+    <!-- Article Cards Grid -->
+    <section class="articles-grid" id="articlesGrid">
+      <!-- Dynamic cards rendered by js/app.js -->
+    </section>
+
+  </main>
+
+  <!-- Modal 1: Add Custom Source -->
+  <div class="modal-backdrop" id="addSourceModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ Add New Monitored Source</h3>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13.5px; color:var(--text-secondary); margin-bottom:16px;">
+          Paste any website link, publication article, or gazette page. The tracker will extract the domain (e.g. <code>Daily Excelsior</code>) and continuously monitor it in all future daily 6:00 PM updates.
+        </p>
+
+        <form id="quickAddSourceForm">
+          <div class="form-group">
+            <label class="form-label" for="sourceUrlInput">Website or Article URL</label>
+            <input type="url" id="sourceUrlInput" class="form-input" placeholder="e.g. https://www.dailyexcelsior.com/cs-atal-dulloo-reviews-implementation-of-new-labour-codes-in-jk/" required>
+            <div class="form-hint">
+              Examples: <code>https://www.dailyexcelsior.com/...</code>, <code>https://pib.gov.in/...</code>, <code>https://economictimes.indiatimes.com/...</code>
+            </div>
+          </div>
+
+          <button type="submit" class="form-btn-primary">Add This Source &rarr;</button>
+        </form>
+
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border-color); font-size:12.5px; color:var(--text-muted);">
+          ✨ <strong>What happens:</strong> 1) If it's a specific article, it appears immediately on your dashboard. 2) The source domain is registered and automatically queried every evening at 6:00 PM IST.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Supabase Auth & Setup -->
+  <div class="modal-backdrop" id="authModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">🔐 Supabase Authentication &amp; Database</h3>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div id="authFormsWrapper">
+          <div style="display:flex; gap:10px; margin-bottom:18px;">
+            <button class="chip-btn active" id="tabSignInBtn" onclick="switchAuthTab('signin')">Sign In</button>
+            <button class="chip-btn" id="tabSignUpBtn" onclick="switchAuthTab('signup')">Sign Up</button>
+            <button class="chip-btn" id="tabConfigBtn" onclick="switchAuthTab('config')">⚙️ Supabase Keys</button>
+          </div>
+
+          <!-- Sign In Form -->
+          <form id="signInForm">
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="signInEmail" class="form-input" placeholder="you@company.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="signInPassword" class="form-input" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="form-btn-primary">Sign In</button>
+          </form>
+
+          <!-- Sign Up Form -->
+          <form id="signUpForm" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="signUpEmail" class="form-input" placeholder="you@company.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Create Password</label>
+              <input type="password" id="signUpPassword" class="form-input" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="form-btn-primary">Create Account</button>
+          </form>
+
+          <!-- Supabase Config Form -->
+          <form id="supabaseConfigForm" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Supabase Project URL</label>
+              <input type="url" id="supabaseUrlInput" class="form-input" placeholder="https://your-project.supabase.co">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Supabase Anon Key</label>
+              <input type="password" id="supabaseKeyInput" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+              <div class="form-hint">Find these in Supabase Dashboard &rarr; Project Settings &rarr; API. Stored safely in your local browser storage.</div>
+            </div>
+            <button type="submit" class="form-btn-primary">Save Supabase Connection</button>
+          </form>
+        </div>
+
+        <div id="authLoggedInWrapper" style="display:none; text-align:center; padding:10px 0;">
+          <div style="font-size:40px; margin-bottom:10px;">👤</div>
+          <h4 style="font-size:16px; margin-bottom:4px;" id="loggedInUserEmail">user@example.com</h4>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">Your bookmarks, custom sources, and preferences are synced with Supabase.</p>
+          <button class="nav-btn btn-accent" onclick="handleSignOut()" style="color:white; margin:0 auto;">Sign Out</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Telegram & Gmail Alerts Settings -->
+  <div class="modal-backdrop" id="alertsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">📬 Telegram &amp; Gmail Daily 6:00 PM Alerts</h3>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:14px; color:var(--text-secondary); margin-bottom:16px;">
+          The system runs automatically every evening at <strong>6:00 PM IST</strong> via GitHub Actions and sends curated 40-50 word summaries directly to your Telegram bot and Gmail digest.
+        </p>
+
+        <div style="background:var(--bg-input); border-radius:var(--radius-md); padding:16px; margin-bottom:16px;">
+          <h4 style="font-size:14px; font-weight:700; margin-bottom:8px;">1. Telegram Instant Alerts</h4>
+          <ul style="font-size:13px; color:var(--text-secondary); padding-left:20px; line-height:1.6;">
+            <li>Create a bot on Telegram via <strong>@BotFather</strong> and get your token.</li>
+            <li>Get your Chat ID via <strong>@userinfobot</strong>.</li>
+            <li>Add secrets <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_CHAT_ID</code> to your GitHub repository or <code>.env</code> file.</li>
+          </ul>
+        </div>
+
+        <div style="background:var(--bg-input); border-radius:var(--radius-md); padding:16px; margin-bottom:16px;">
+          <h4 style="font-size:14px; font-weight:700; margin-bottom:8px;">2. Gmail Daily HTML Digest</h4>
+          <ul style="font-size:13px; color:var(--text-secondary); padding-left:20px; line-height:1.6;">
+            <li>Generate a Google App Password from your Google Account &rarr; Security.</li>
+            <li>Add secrets <code>EMAIL_ADDRESS</code>, <code>EMAIL_APP_PASSWORD</code>, and <code>EMAIL_TO</code> to GitHub Secrets.</li>
+          </ul>
+        </div>
+
+        <button class="form-btn-primary" onclick="App.closeAllModals()">Got It &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <div>
+        <strong>India &amp; Gujarat Labour Law Tracker</strong> &middot; Real-time policy monitoring from October 2025 to Present.
+      </div>
+      <div class="footer-links">
+        <a href="sources.html">Manage Sources</a>
+        <a href="https://github.com" target="_blank" rel="noopener">GitHub Action Daily 6:00 PM</a>
+        <a href="#" onclick="App.openModal('alertsModal'); return false;">Email &amp; Telegram</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/supabase-client.js"></script>
+  <script src="js/sources-manager.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Auth Tab Switching Logic -->
+  <script>
+    function switchAuthTab(tab) {
+      document.querySelectorAll('#authFormsWrapper .chip-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('signInForm').style.display = tab === 'signin' ? 'block' : 'none';
+      document.getElementById('signUpForm').style.display = tab === 'signup' ? 'block' : 'none';
+      document.getElementById('supabaseConfigForm').style.display = tab === 'config' ? 'block' : 'none';
+
+      if (tab === 'signin') document.getElementById('tabSignInBtn').classList.add('active');
+      if (tab === 'signup') document.getElementById('tabSignUpBtn').classList.add('active');
+      if (tab === 'config') {
+        document.getElementById('tabConfigBtn').classList.add('active');
+        const cfg = SupabaseManager.getConfig();
+        document.getElementById('supabaseUrlInput').value = cfg.url || '';
+        document.getElementById('supabaseKeyInput').value = cfg.key || '';
+      }
+    }
+
+    document.getElementById('signInForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('signInEmail').value;
+      const pass = document.getElementById('signInPassword').value;
+      App.showToast('Signing in...');
+      const res = await SupabaseManager.signIn(email, pass);
+      if (res.user) {
+        App.showToast('Signed in successfully!');
+        App.closeAllModals();
+      } else {
+        alert(res.error || 'Sign in failed');
+      }
+    });
+
+    document.getElementById('signUpForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('signUpEmail').value;
+      const pass = document.getElementById('signUpPassword').value;
+      App.showToast('Creating account...');
+      const res = await SupabaseManager.signUp(email, pass);
+      if (res.user) {
+        App.showToast('Account created! Signed in.');
+        App.closeAllModals();
+      } else {
+        alert(res.error || 'Sign up failed');
+      }
+    });
+
+    document.getElementById('supabaseConfigForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const url = document.getElementById('supabaseUrlInput').value;
+      const key = document.getElementById('supabaseKeyInput').value;
+      SupabaseManager.saveConfig(url, key);
+      App.showToast('Supabase settings saved and connected!');
+      App.closeAllModals();
+    });
+
+    async function handleSignOut() {
+      await SupabaseManager.signOut();
+      App.showToast('Signed out.');
+      App.closeAllModals();
+    }
+
+    SupabaseManager.onAuthChange((user) => {
+      const formWrap = document.getElementById('authFormsWrapper');
+      const loggedInWrap = document.getElementById('authLoggedInWrapper');
+      const emailText = document.getElementById('loggedInUserEmail');
+
+      if (user) {
+        if (formWrap) formWrap.style.display = 'none';
+        if (loggedInWrap) loggedInWrap.style.display = 'block';
+        if (emailText) emailText.textContent = user.email;
+      } else {
+        if (formWrap) formWrap.style.display = 'block';
+        if (loggedInWrap) loggedInWrap.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

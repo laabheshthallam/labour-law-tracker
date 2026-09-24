@@ -1,0 +1,109 @@
+# ============================================================
+# Gujarat & India Labour Law Tracker - Configuration
+# ============================================================
+# Tracks updates across:
+# - PF / EPFO & EPS Changes
+# - ESI / ESIC Regulations
+# - Gratuity & Wage Revisions
+# - 4 Labour Codes (Wage, Social Security, Industrial Relations, OSH)
+# - State-Specific Policies (Gujarat, J&K, Maharashtra, Karnataka, UP, Delhi, etc.)
+# - Emerging Workforce Trends: Gig Economy & Platform Workers
+# - Remote & Hybrid Work Policies & Cross-Border Compliance
+# - Gazette of India & Official Ministry Circulars (MoLE, EPFO, ESIC)
+# ============================================================
+
+# Target summary length in words (~40-50 words)
+target_summary_words: 45
+fallback_summary_length: 300
+
+# Maximum number of items kept in the permanent archive
+max_archive_items: 1000
+
+# Daily automated run time: 18:00 IST (6:00 PM IST)
+run_schedule: "18:00 IST"
+
+search_queries:
+  # PF / EPFO & Pension
+  - query: "EPFO circular OR notification OR \"higher pension\""
+    category: "PF / EPFO"
+    state: "National / Central"
+  - query: "PF withdrawal rules OR UAN update OR \"EPF Scheme 2026\""
+    category: "PF / EPFO"
+    state: "National / Central"
+  - query: "EPS 95 pension increase OR \"minimum pension Rs 7500\""
+    category: "EPS (Pension) Changes"
+    state: "National / Central"
+
+  # ESI / ESIC
+  - query: "ESIC notification India OR \"ESI contribution\" OR \"ESI wage limit\""
+    category: "ESI / ESIC"
+    state: "National / Central"
+  - query: "ESIC 50% wage rule OR \"Atal Beemit Vyakti Kalyan Yojana\""
+    category: "ESI / ESIC"
+    state: "National / Central"
+
+  # Gratuity & Minimum Wages
+  - query: "gratuity act India 1 year fixed term OR \"gratuity calculation\""
+    category: "Gratuity"
+    state: "National / Central"
+  - query: "minimum wages notification India OR \"Variable Dearness Allowance\""
+    category: "Minimum Wages"
+    state: "National / Central"
+
+  # Gujarat State-Specific Regulations
+  - query: "Gujarat labour law amendment OR \"Gujarat minimum wages\""
+    category: "Gujarat Labour Law"
+    state: "Gujarat"
+  - query: "Gujarat shops and establishments act amendment OR 20 employees"
+    category: "Shops & Establishment Act"
+    state: "Gujarat"
+  - query: "Gujarat factories act OR \"Gujarat Labour Welfare Board\" GLWB"
+    category: "Gujarat Labour Law"
+    state: "Gujarat"
+  - query: "site:labour.gujarat.gov.in OR site:gazette.gujarat.gov.in labour"
+    category: "Gazette / Notifications"
+    state: "Gujarat"
+
+  # Regional & State-Wise Policies (J&K, Karnataka, Maharashtra, etc.)
+  - query: "\"Daily Excelsior\" labour OR \"Atal Dulloo\" \"labour codes\""
+    category: "Labour Codes"
+    state: "Jammu & Kashmir"
+  - query: "Karnataka labour department notification OR \"IT ITES standing orders\""
+    category: "Labour Codes"
+    state: "Karnataka"
+  - query: "Maharashtra minimum wages notification OR \"labour welfare board\""
+    category: "Minimum Wages"
+    state: "Maharashtra"
+
+  # Emerging Workforce: Gig Economy & Platform Workers
+  - query: "\"gig workers\" welfare act OR bill India OR \"platform workers social security\""
+    category: "Gig Economy & Platform Workers"
+    state: "National / Central"
+  - query: "Karnataka OR Rajasthan OR Telangana \"gig workers welfare board\" aggregator fee"
+    category: "Gig Economy & Platform Workers"
+    state: "National / Central"
+
+  # Remote & Hybrid Work / WFH Compliance
+  - query: "\"remote work\" compliance India OR \"hybrid work\" SEZ rule 43A"
+    category: "Remote & Hybrid Work"
+    state: "National / Central"
+  - query: "\"work from anywhere\" tax implications India OR cross-border professional tax"
+    category: "Remote & Hybrid Work"
+    state: "National / Central"
+
+  # Central Labour Codes & National Gazettes
+  - query: "labour codes India implementation \"final central rules\""
+    category: "Labour Codes"
+    state: "National / Central"
+  - query: "\"Ministry of Labour and Employment\" gazette notification India"
+    category: "Gazette / Notifications"
+    state: "National / Central"
+  - query: "site:egazette.gov.in \"Labour and Employment\""
+    category: "Gazette / Notifications"
+    state: "National / Central"
+  - query: "PIB \"Ministry of Labour\" notification"
+    category: "Gazette / Notifications"
+    state: "National / Central"
+
+# Direct RSS / Feed URLs
+rss_feeds: []

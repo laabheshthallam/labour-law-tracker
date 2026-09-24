@@ -1,0 +1,86 @@
+[
+  {
+    "id": "src-daily-excelsior",
+    "name": "Daily Excelsior (J&K & Regional)",
+    "domain": "dailyexcelsior.com",
+    "url": "https://www.dailyexcelsior.com/cs-atal-dulloo-reviews-implementation-of-new-labour-codes-in-jk/",
+    "type": "domain_search",
+    "query": "site:dailyexcelsior.com labour OR \"labour codes\" OR \"minimum wages\" OR pf OR esic OR gratuity",
+    "category": "Labour Codes",
+    "state": "Jammu & Kashmir",
+    "active": true,
+    "added_at": "2026-09-20"
+  },
+  {
+    "id": "src-pib-labour",
+    "name": "Press Information Bureau (Ministry of Labour)",
+    "domain": "pib.gov.in",
+    "url": "https://pib.gov.in",
+    "type": "domain_search",
+    "query": "site:pib.gov.in \"Ministry of Labour\" OR EPFO OR ESIC OR \"Labour Codes\"",
+    "category": "Gazette / Notifications",
+    "state": "National / Central",
+    "active": true,
+    "added_at": "2026-01-01"
+  },
+  {
+    "id": "src-epfo-official",
+    "name": "EPFO Official Portal & Circulars",
+    "domain": "epfindia.gov.in",
+    "url": "https://www.epfindia.gov.in",
+    "type": "domain_search",
+    "query": "site:epfindia.gov.in circular OR notification OR \"higher pension\" OR \"EPF scheme\"",
+    "category": "PF / EPFO",
+    "state": "National / Central",
+    "active": true,
+    "added_at": "2026-01-01"
+  },
+  {
+    "id": "src-esic-official",
+    "name": "ESIC (Employees' State Insurance Corporation)",
+    "domain": "esic.gov.in",
+    "url": "https://www.esic.gov.in",
+    "type": "domain_search",
+    "query": "site:esic.gov.in notification OR circular OR \"wage limit\" OR \"maternity\"",
+    "category": "ESI / ESIC",
+    "state": "National / Central",
+    "active": true,
+    "added_at": "2026-01-01"
+  },
+  {
+    "id": "src-gazette-india",
+    "name": "The Gazette of India (e-Gazette)",
+    "domain": "egazette.gov.in",
+    "url": "https://egazette.gov.in",
+    "type": "domain_search",
+    "query": "site:egazette.gov.in \"Ministry of Labour and Employment\" OR \"Code on Social Security\" OR \"Code on Wages\"",
+    "category": "Gazette / Notifications",
+    "state": "National / Central",
+    "active": true,
+    "added_at": "2026-01-01"
+  },
+  {
+    "id": "src-gujarat-labour",
+    "name": "Gujarat Labour & Employment Department",
+    "domain": "labour.gujarat.gov.in",
+    "url": "https://labour.gujarat.gov.in",
+    "type": "domain_search",
+    "query": "site:labour.gujarat.gov.in OR site:gazette.gujarat.gov.in \"minimum wages\" OR \"shops and establishments\" OR \"labour\"",
+    "category": "Gujarat Labour Law",
+    "state": "Gujarat",
+    "active": true,
+    "added_at": "2026-01-01"
+  },
+  {
+    "id": "src-legal-roundups",
+    "name": "Bar and Bench & LiveLaw Legal Updates",
+    "domain": "barandbench.com",
+    "url": "https://www.barandbench.com",
+    "type": "domain_search",
+    "query": "(site:barandbench.com OR site:livelaw.in) (PF OR EPFO OR gratuity OR \"labour codes\" OR ESIC OR \"gig workers\")",
+    "category": "Labour Codes",
+    "state": "National / Central",
+    "active": true,
+    "added_at": "2026-01-01"
+  }
+]
